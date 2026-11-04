@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAISE — Codebase AI Search &amp; Evaluation</title>
+<meta name="description" content="CAISE indexes Git repositories into a vector database so you can search and chat with your code using local or cloud LLMs, with per-user access control.">
+<meta name="color-scheme" content="light dark">
+<style>
+  :root {
+    --bg: #0b1020; --bg2: #111833; --card: #151d3b; --border: #26315c;
+    --fg: #e8ecff; --muted: #9aa6d1; --accent: #6c8cff; --accent2: #36d6b5;
+    --warn: #ffb454; --code-bg: #0a0f20; --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f6f8ff; --bg2: #eaefff; --card: #ffffff; --border: #d7def5;
+      --fg: #121a3a; --muted: #55608a; --accent: #3b5bdb; --accent2: #0ca98a;
+      --warn: #c77700; --code-bg: #0f1630; --shadow: 0 10px 30px rgba(30,50,120,.12);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b1020; --bg2: #111833; --card: #151d3b; --border: #26315c;
+    --fg: #e8ecff; --muted: #9aa6d1; --accent: #6c8cff; --accent2: #36d6b5;
+    --warn: #ffb454; --code-bg: #0a0f20; --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f6f8ff; --bg2: #eaefff; --card: #ffffff; --border: #d7def5;
+    --fg: #121a3a; --muted: #55608a; --accent: #3b5bdb; --accent2: #0ca98a;
+    --warn: #c77700; --code-bg: #0f1630; --shadow: 0 10px 30px rgba(30,50,120,.12);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  code { background: color-mix(in srgb, var(--accent) 14%, transparent); padding: .1em .4em; border-radius: 5px; font-size: .88em; }
+  pre {
+    background: var(--code-bg); color: #dfe6ff; padding: 16px 18px; border-radius: 12px;
+    overflow-x: auto; font-size: .86rem; line-height: 1.55; border: 1px solid var(--border); margin: 12px 0;
+  }
+  pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+  .c { color: #7f8bb8; }
+  .container { width: min(1120px, 92vw); margin: 0 auto; }
+
+  /* Nav */
+  header.nav {
+    position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px);
+    background: color-mix(in srgb, var(--bg) 82%, transparent); border-bottom: 1px solid var(--border);
+  }
+  .nav-inner { display: flex; align-items: center; gap: 20px; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: .5px; color: var(--fg); }
+  .brand:hover { text-decoration: none; }
+  .logo { width: 28px; height: 28px; }
+  nav.links { display: flex; gap: 4px; margin-left: auto; overflow-x: auto; }
+  nav.links a { color: var(--muted); padding: 6px 10px; border-radius: 8px; font-size: .92rem; white-space: nowrap; }
+  nav.links a:hover { color: var(--fg); background: var(--bg2); text-decoration: none; }
+  button.theme {
+    background: var(--card); color: var(--fg); border: 1px solid var(--border); border-radius: 8px;
+    width: 36px; height: 36px; cursor: pointer; font-size: 1rem; flex: none;
+  }
+  button.theme:hover { border-color: var(--accent); }
+
+  /* Hero */
+  .hero { padding: 90px 0 70px; background:
+    radial-gradient(900px 400px at 85% -10%, color-mix(in srgb, var(--accent) 28%, transparent), transparent 70%),
+    radial-gradient(700px 360px at 0% 10%, color-mix(in srgb, var(--accent2) 18%, transparent), transparent 70%); }
+  .eyebrow { color: var(--accent2); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-size: .8rem; }
+  h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1.1; margin: 10px 0 16px; letter-spacing: -.02em; }
+  h1 .grad { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lead { font-size: 1.2rem; color: var(--muted); max-width: 760px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 10px;
+    font-weight: 600; border: 1px solid var(--border); color: var(--fg); background: var(--card);
+  }
+  .btn:hover { text-decoration: none; border-color: var(--accent); }
+  .btn.primary { background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--accent2))); color: #fff; border: 0; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
+  .badge { font-size: .8rem; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); background: var(--card); }
+
+  /* Sections */
+  section { padding: 72px 0; }
+  section.alt { background: var(--bg2); border-block: 1px solid var(--border); }
+  h2 { font-size: 2rem; margin: 0 0 8px; letter-spacing: -.01em; }
+  h3 { margin: 0 0 6px; font-size: 1.1rem; }
+  .sub { color: var(--muted); max-width: 760px; margin: 0 0 34px; }
+  .grid { display: grid; gap: 18px; }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .g3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .g4 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px;
+    box-shadow: var(--shadow); transition: transform .15s, border-color .15s;
+  }
+  .card:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .card p { margin: 6px 0 0; color: var(--muted); font-size: .95rem; }
+  .ico { font-size: 1.6rem; margin-bottom: 8px; display: block; }
+
+  /* Steps */
+  ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 0; display: grid; gap: 14px; }
+  ol.steps li {
+    counter-increment: s; position: relative; background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px 18px 16px 64px;
+  }
+  ol.steps li::before {
+    content: counter(s); position: absolute; left: 18px; top: 16px; width: 32px; height: 32px; border-radius: 50%;
+    display: grid; place-items: center; font-weight: 800; color: #fff;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+  }
+  ol.steps b { display: block; }
+  ol.steps span { color: var(--muted); font-size: .95rem; }
+
+  /* Diagram */
+  .diagram { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; overflow-x: auto; box-shadow: var(--shadow); }
+  .diagram svg { min-width: 760px; width: 100%; height: auto; display: block; color: var(--fg); }
+  .diagram .box { fill: var(--bg2); stroke: var(--border); stroke-width: 1.4; }
+  .diagram .box.a { stroke: var(--accent); }
+  .diagram .box.b { stroke: var(--accent2); }
+  .diagram .box.w { stroke: var(--warn); }
+  .diagram text { fill: var(--fg); font: 600 13px system-ui, sans-serif; }
+  .diagram text.s { fill: var(--muted); font-weight: 400; font-size: 11px; }
+  .diagram .ln { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#arr); }
+  .diagram .ln.d { stroke-dasharray: 5 4; }
+  .diagram .grp { fill: none; stroke: var(--border); stroke-dasharray: 4 4; }
+  .diagram text.g { fill: var(--muted); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+
+  /* Tables */
+  .tbl { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; background: var(--bg2); }
+  tr:last-child td { border-bottom: 0; }
+  .m { font-family: ui-monospace, monospace; font-size: .82rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: color-mix(in srgb, var(--accent2) 18%, transparent); color: var(--accent2); }
+  .m.post { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
+  .m.del { background: color-mix(in srgb, #ff6b6b 20%, transparent); color: #ff6b6b; }
+  .m.put { background: color-mix(in srgb, var(--warn) 22%, transparent); color: var(--warn); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .chip { padding: 5px 12px; border-radius: 8px; background: var(--bg2); border: 1px solid var(--border); font-size: .88rem; }
+  .note { border-left: 4px solid var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--card)); padding: 12px 16px; border-radius: 8px; margin: 16px 0; font-size: .93rem; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; }
+  .tabs button { background: var(--card); border: 1px solid var(--border); color: var(--muted); padding: 7px 14px; border-radius: 8px; cursor: pointer; font: inherit; font-size: .9rem; }
+  .tabs button[aria-selected="true"] { color: #fff; background: var(--accent); border-color: var(--accent); }
+  .panel[hidden] { display: none; }
+  details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin-bottom: 10px; }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { color: var(--muted); margin: 8px 0 0; }
+  footer { padding: 40px 0 60px; border-top: 1px solid var(--border); color: var(--muted); font-size: .92rem; }
+  footer .row { display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; }
+  @media (max-width: 720px) { .hero { padding-top: 60px; } section { padding: 52px 0; } }
+
+  /* ===== Colorful theme layer ===== */
+  :root {
+    --p1: #6c8cff; --p2: #2ee6c0; --p3: #ff6b9d; --p4: #ffb454; --p5: #a78bfa; --p6: #4fd1ff;
+    --grad: linear-gradient(90deg, var(--p1), var(--p5), var(--p3), var(--p4));
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --p1: #3b5bdb; --p2: #0ca98a; --p3: #e0457b; --p4: #e08a00; --p5: #7c4dff; --p6: #0b9ed6; }
+  }
+  :root[data-theme="dark"] { --p1: #6c8cff; --p2: #2ee6c0; --p3: #ff6b9d; --p4: #ffb454; --p5: #a78bfa; --p6: #4fd1ff; }
+  :root[data-theme="light"] { --p1: #3b5bdb; --p2: #0ca98a; --p3: #e0457b; --p4: #e08a00; --p5: #7c4dff; --p6: #0b9ed6; }
+
+  body { background:
+    radial-gradient(800px 500px at 100% 30%, color-mix(in srgb, var(--p3) 9%, transparent), transparent 70%),
+    radial-gradient(800px 500px at 0% 60%, color-mix(in srgb, var(--p6) 9%, transparent), transparent 70%),
+    var(--bg); }
+  header.nav { border-bottom: 2px solid transparent; border-image: var(--grad) 1; }
+  nav.links a:hover { color: var(--c, var(--p1)); }
+  nav.links a:nth-child(6n+1) { --c: var(--p1); } nav.links a:nth-child(6n+2) { --c: var(--p2); }
+  nav.links a:nth-child(6n+3) { --c: var(--p3); } nav.links a:nth-child(6n+4) { --c: var(--p4); }
+  nav.links a:nth-child(6n+5) { --c: var(--p5); } nav.links a:nth-child(6n+6) { --c: var(--p6); }
+
+  .hero { background:
+    radial-gradient(700px 380px at 90% -10%, color-mix(in srgb, var(--p5) 38%, transparent), transparent 70%),
+    radial-gradient(600px 340px at 5% 0%, color-mix(in srgb, var(--p2) 30%, transparent), transparent 70%),
+    radial-gradient(600px 300px at 55% 110%, color-mix(in srgb, var(--p3) 26%, transparent), transparent 70%); }
+  .eyebrow { color: var(--p3); }
+  h1 .grad, .grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .btn.primary { background: linear-gradient(135deg, var(--p1), var(--p5) 55%, var(--p3)); box-shadow: 0 8px 24px color-mix(in srgb, var(--p5) 40%, transparent); }
+  .btn:not(.primary):hover { border-color: var(--p2); color: var(--p2); }
+  .badges .badge:nth-child(6n+1) { --c: var(--p1); } .badges .badge:nth-child(6n+2) { --c: var(--p2); }
+  .badges .badge:nth-child(6n+3) { --c: var(--p3); } .badges .badge:nth-child(6n+4) { --c: var(--p4); }
+  .badges .badge:nth-child(6n+5) { --c: var(--p5); } .badges .badge:nth-child(6n+6) { --c: var(--p6); }
+  .badge { color: var(--c, var(--muted)); border-color: color-mix(in srgb, var(--c, var(--border)) 55%, transparent); background: color-mix(in srgb, var(--c, var(--card)) 12%, var(--card)); }
+
+  h2 { display: inline-block; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  h2::after { content: ""; display: block; height: 4px; width: 64px; border-radius: 4px; margin-top: 6px; background: var(--grad); }
+  section.alt { background: linear-gradient(180deg, color-mix(in srgb, var(--p6) 9%, var(--bg2)), color-mix(in srgb, var(--p5) 7%, var(--bg2))); }
+
+  .grid > .card:nth-child(6n+1) { --c: var(--p1); } .grid > .card:nth-child(6n+2) { --c: var(--p2); }
+  .grid > .card:nth-child(6n+3) { --c: var(--p3); } .grid > .card:nth-child(6n+4) { --c: var(--p4); }
+  .grid > .card:nth-child(6n+5) { --c: var(--p5); } .grid > .card:nth-child(6n+6) { --c: var(--p6); }
+  .card { --c: var(--p1); border-top: 4px solid var(--c);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--c) 10%, var(--card)), var(--card) 55%); }
+  .card:hover { border-color: var(--c); box-shadow: 0 14px 34px color-mix(in srgb, var(--c) 28%, transparent); }
+  .card h3 { color: var(--c); }
+  .ico { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 12px; font-size: 1.5rem;
+    background: color-mix(in srgb, var(--c) 20%, transparent); margin-bottom: 10px; }
+
+  ol.steps li:nth-child(5n+1) { --c: var(--p1); } ol.steps li:nth-child(5n+2) { --c: var(--p2); }
+  ol.steps li:nth-child(5n+3) { --c: var(--p3); } ol.steps li:nth-child(5n+4) { --c: var(--p4); }
+  ol.steps li:nth-child(5n+5) { --c: var(--p5); }
+  ol.steps li { border-left: 4px solid var(--c); background: linear-gradient(90deg, color-mix(in srgb, var(--c) 12%, var(--card)), var(--card) 45%); }
+  ol.steps li::before { background: var(--c); box-shadow: 0 4px 14px color-mix(in srgb, var(--c) 50%, transparent); }
+  ol.steps b { color: var(--c); }
+
+  .chip:nth-child(6n+1) { --c: var(--p1); } .chip:nth-child(6n+2) { --c: var(--p2); }
+  .chip:nth-child(6n+3) { --c: var(--p3); } .chip:nth-child(6n+4) { --c: var(--p4); }
+  .chip:nth-child(6n+5) { --c: var(--p5); } .chip:nth-child(6n+6) { --c: var(--p6); }
+  .chip { color: var(--c); font-weight: 600; background: color-mix(in srgb, var(--c) 14%, var(--card)); border-color: color-mix(in srgb, var(--c) 50%, transparent); }
+
+  th { background: linear-gradient(90deg, color-mix(in srgb, var(--p1) 22%, var(--bg2)), color-mix(in srgb, var(--p3) 18%, var(--bg2))); color: var(--fg); }
+  table tr:nth-child(even) td { background: color-mix(in srgb, var(--p5) 5%, transparent); }
+  table tr:hover td { background: color-mix(in srgb, var(--p2) 10%, transparent); }
+  code { background: color-mix(in srgb, var(--p5) 16%, transparent); color: color-mix(in srgb, var(--p5) 85%, var(--fg)); }
+  pre code { color: inherit; background: none; }
+  pre { border-left: 4px solid var(--p5); }
+  pre .c { color: #7fd8a8; }
+
+  .tabs button:nth-child(4n+1) { --c: var(--p1); } .tabs button:nth-child(4n+2) { --c: var(--p2); }
+  .tabs button:nth-child(4n+3) { --c: var(--p3); } .tabs button:nth-child(4n+4) { --c: var(--p4); }
+  .tabs button { border-color: color-mix(in srgb, var(--c) 55%, transparent); color: var(--c); }
+  .tabs button[aria-selected="true"] { background: var(--c); border-color: var(--c); color: #fff; box-shadow: 0 6px 16px color-mix(in srgb, var(--c) 40%, transparent); }
+
+  .note { border-left-color: var(--p4); background: color-mix(in srgb, var(--p4) 14%, var(--card)); }
+  details:nth-of-type(6n+1) { --c: var(--p1); } details:nth-of-type(6n+2) { --c: var(--p2); }
+  details:nth-of-type(6n+3) { --c: var(--p3); } details:nth-of-type(6n+4) { --c: var(--p4); }
+  details:nth-of-type(6n+5) { --c: var(--p5); } details:nth-of-type(6n+6) { --c: var(--p6); }
+  details { border-left: 4px solid var(--c, var(--p1)); }
+  details[open] { background: color-mix(in srgb, var(--c, var(--p1)) 8%, var(--card)); }
+  summary { color: var(--c, var(--fg)); }
+
+  .diagram { border: 2px solid var(--p5); }
+  .diagram .box { fill: color-mix(in srgb, var(--c, var(--p1)) 18%, var(--card)); stroke: var(--c, var(--p1)); stroke-width: 2; }
+  .diagram .box.c1 { --c: var(--p1); } .diagram .box.c2 { --c: var(--p2); } .diagram .box.c3 { --c: var(--p3); }
+  .diagram .box.c4 { --c: var(--p4); } .diagram .box.c5 { --c: var(--p5); } .diagram .box.c6 { --c: var(--p6); }
+  .diagram .ln { stroke: var(--p5); }
+  .diagram .grp { stroke-width: 1.5; }
+  .diagram .grp.g1 { stroke: var(--p1); } .diagram .grp.g2 { stroke: var(--p4); } .diagram .grp.g3 { stroke: var(--p2); }
+
+  footer { background: linear-gradient(90deg, color-mix(in srgb, var(--p1) 12%, transparent), color-mix(in srgb, var(--p3) 12%, transparent)); border-top: 3px solid transparent; border-image: var(--grad) 1; }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="#top">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6c8cff"/><stop offset="1" stop-color="#36d6b5"/></linearGradient></defs>
+        <rect width="32" height="32" rx="8" fill="url(#lg)"/>
+        <path d="M11 11l-5 5 5 5M21 11l5 5-5 5M17.5 9l-3 14" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      CAISE
+    </a>
+    <nav class="links" aria-label="Sections">
+      <a href="#features">Features</a>
+      <a href="#usecases">Use cases</a>
+      <a href="#how">How it works</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#stack">Tech stack</a>
+      <a href="#install">Install</a>
+      <a href="#config">Config</a>
+      <a href="#api">API</a>
+      <a href="#security">Security</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <button class="theme" id="theme" aria-label="Toggle theme" title="Toggle theme">◐</button>
+  </div>
+</header>
+
+<main id="top">
+  <!-- HERO -->
+  <div class="hero">
+    <div class="container">
+      <div class="eyebrow">Codebase AI Search &amp; Evaluation</div>
+      <h1>Talk to your code.<br><span class="grad">Get answers with file &amp; line citations.</span></h1>
+      <p class="lead">
+        CAISE indexes your Git repositories into a vector database. Ask a question in plain language,
+        CAISE retrieves the most relevant code, and an LLM of your choice — local or cloud — answers using
+        only that code, with access control built in.
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="#install">Get started →</a>
+        <a class="btn" href="#how">How it works</a>
+        <a class="btn" href="#api">API reference</a>
+      </div>
+      <div class="badges">
+        <span class="badge">RAG over your repos</span>
+        <span class="badge">Ollama · OpenAI · Anthropic · DeepSeek</span>
+        <span class="badge">Incremental indexing</span>
+        <span class="badge">Streaming chat (SSE)</span>
+        <span class="badge">Semgrep scans</span>
+        <span class="badge">Per-user access control</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTRO -->
+  <section id="intro">
+    <div class="container">
+      <h2>Introduction</h2>
+      <p class="sub">
+        Understanding a large codebase means searching by <em>meaning</em>, not only by keyword.
+        CAISE combines semantic search with a large language model so developers can onboard, navigate
+        and audit code through conversation.
+      </p>
+      <div class="grid g3">
+        <div class="card"><span class="ico">🔎</span><h3>Semantic search</h3><p>Code is chunked and embedded with sentence-transformers, then stored in Qdrant for cosine-similarity retrieval.</p></div>
+        <div class="card"><span class="ico">💬</span><h3>Grounded answers</h3><p>The LLM answers using <em>only</em> the retrieved snippets and cites file paths and line numbers.</p></div>
+        <div class="card"><span class="ico">🔐</span><h3>Private by design</h3><p>Run fully local with Ollama and Qdrant, or bring your own cloud keys. Users only retrieve repos they can access.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="alt">
+    <div class="container">
+      <h2>Features</h2>
+      <p class="sub">Everything needed to go from a repository URL to a conversation about its code.</p>
+      <div class="grid g3">
+        <div class="card"><span class="ico">🌿</span><h3>Per-branch indexing</h3><p>One checkout and one index per <code>repo@branch</code>, so branches are searchable independently.</p></div>
+        <div class="card"><span class="ico">⚡</span><h3>Incremental re-index</h3><p>Diffs the last indexed commit against <code>HEAD</code> and re-embeds only modified and added files, dropping deleted ones.</p></div>
+        <div class="card"><span class="ico">🌳</span><h3>AST-aware chunking</h3><p>Python is split into function and class chunks with tree-sitter; other languages use 100-line blocks.</p></div>
+        <div class="card"><span class="ico">🤖</span><h3>Multi-provider LLMs</h3><p>Ollama, OpenAI, Anthropic and DeepSeek with a model catalog per provider and live <em>configured</em> flags.</p></div>
+        <div class="card"><span class="ico">📡</span><h3>Streaming chat</h3><p>Server-Sent Events stream tokens and sources; chats, partial answers and failures are persisted server-side.</p></div>
+        <div class="card"><span class="ico">🛡️</span><h3>Security scanning</h3><p>Every index run executes a Semgrep scan and reports rule, severity, file and line for each finding.</p></div>
+        <div class="card"><span class="ico">🔑</span><h3>Bring your own keys</h3><p>Signed-in users can save OpenAI/Anthropic/DeepSeek keys, stored Fernet-encrypted and never returned in full.</p></div>
+        <div class="card"><span class="ico">🪝</span><h3>GitHub webhook</h3><p>A signed <code>push</code> webhook re-indexes registered branches automatically.</p></div>
+        <div class="card"><span class="ico">👤</span><h3>OAuth &amp; guest mode</h3><p>Sign in with GitHub, or continue as a guest limited to public repositories on allow-listed hosts.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- USE CASES -->
+  <section id="usecases">
+    <div class="container">
+      <h2>Use cases</h2>
+      <p class="sub">Where CAISE saves time.</p>
+      <div class="grid g2">
+        <div class="card"><h3>🚀 Developer onboarding</h3><p>“Where is authentication handled?” “How does the indexing pipeline work?” New teammates get cited answers instead of reading every file.</p></div>
+        <div class="card"><h3>🧭 Navigating large repos</h3><p>Find code by intent — “where do we retry failed requests?” — even when you don't know the identifier names.</p></div>
+        <div class="card"><h3>🔍 Change awareness &amp; review</h3><p>Each index run records which files were modified, added and deleted since the previous commit, shown in the workspace context drawer.</p></div>
+        <div class="card"><h3>🛡️ Security triage</h3><p>Semgrep findings with severity and location are produced for every indexed commit, giving a fast starting point for audits.</p></div>
+        <div class="card"><h3>🏠 Private, on-prem AI</h3><p>Pair Ollama with a self-hosted Qdrant so source code never leaves your machine or network.</p></div>
+        <div class="card"><h3>📚 Team knowledge base</h3><p>Index many repositories and branches, then ask across all of them or scope a chat to a single <code>repo@branch</code>.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how" class="alt">
+    <div class="container">
+      <h2>How it works</h2>
+      <p class="sub">From repository URL to streamed answer in five steps.</p>
+      <ol class="steps">
+        <li><b>Ingest</b><span>The repo is cloned (or pulled) into <code>storage/repos/&lt;org&gt;/&lt;repo&gt;@&lt;branch&gt;</code>. Private repos use a token that is used per run and never stored.</span></li>
+        <li><b>Chunk</b><span>Python files are split by AST into functions/classes. <code>.js .ts .java .go .rs .md .json</code> use 100-line blocks. Symlinks are never followed.</span></li>
+        <li><b>Embed &amp; store</b><span>Chunks are embedded with <code>all-MiniLM-L6-v2</code> (384-dim, cosine) and upserted into Qdrant along with the list of users allowed to read them.</span></li>
+        <li><b>Update incrementally</b><span>Later runs diff the last indexed commit against <code>HEAD</code>. Unchanged → skipped. Previous commit gone (force-push) → full re-index.</span></li>
+        <li><b>Ask</b><span>The question is embedded, top-k chunks the caller may access are retrieved, and the selected LLM streams an answer with sources over SSE.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section id="architecture">
+    <div class="container">
+      <h2>Architecture</h2>
+      <p class="sub">A React single-page app talks to a FastAPI backend; slow indexing runs out-of-band on Celery workers.</p>
+      <div class="diagram">
+        <svg viewBox="0 0 900 470" role="img" aria-label="CAISE architecture diagram">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0L10 5L0 10z" fill="currentColor" style="color:var(--muted)"/>
+            </marker>
+          </defs>
+
+          <rect class="grp g1" x="20" y="30" width="170" height="410" rx="14"/>
+          <text class="g" x="34" y="52">Browser</text>
+          <rect class="grp g2" x="230" y="30" width="330" height="410" rx="14"/>
+          <text class="g" x="244" y="52">Backend</text>
+          <rect class="grp g3" x="600" y="30" width="280" height="410" rx="14"/>
+          <text class="g" x="614" y="52">Data &amp; services</text>
+
+          <rect class="box c1" x="40" y="180" width="130" height="80" rx="10"/>
+          <text x="105" y="214" text-anchor="middle">React SPA</text>
+          <text class="s" x="105" y="234" text-anchor="middle">Vite · TS · Tailwind</text>
+
+          <rect class="box c5" x="255" y="110" width="280" height="80" rx="10"/>
+          <text x="395" y="144" text-anchor="middle">FastAPI API</text>
+          <text class="s" x="395" y="164" text-anchor="middle">Auth · Chat (SSE) · Search · Webhook</text>
+
+          <rect class="box c4" x="255" y="300" width="280" height="80" rx="10"/>
+          <text x="395" y="334" text-anchor="middle">Celery worker</text>
+          <text class="s" x="395" y="354" text-anchor="middle">clone → chunk → embed → upsert · Semgrep</text>
+
+          <rect class="box c3" x="640" y="80" width="200" height="56" rx="10"/>
+          <text x="740" y="106" text-anchor="middle">Redis</text>
+          <text class="s" x="740" y="124" text-anchor="middle">broker · results</text>
+
+          <rect class="box c2" x="640" y="160" width="200" height="56" rx="10"/>
+          <text x="740" y="186" text-anchor="middle">Qdrant</text>
+          <text class="s" x="740" y="204" text-anchor="middle">vectors + allowed_users</text>
+
+          <rect class="box c6" x="640" y="240" width="200" height="56" rx="10"/>
+          <text x="740" y="266" text-anchor="middle">SQLite</text>
+          <text class="s" x="740" y="284" text-anchor="middle">users · repos · chats · keys</text>
+
+          <rect class="box c1" x="640" y="320" width="200" height="56" rx="10"/>
+          <text x="740" y="346" text-anchor="middle">Git remotes</text>
+          <text class="s" x="740" y="364" text-anchor="middle">GitHub / any http(s) host</text>
+
+          <rect class="box c5" x="640" y="392" width="200" height="38" rx="10"/>
+          <text x="740" y="416" text-anchor="middle">Ollama · OpenAI · Anthropic · DeepSeek</text>
+
+          <path class="ln" d="M170 220 L255 160"/>
+          <path class="ln d" d="M255 170 L170 235"/>
+          <path class="ln" d="M535 130 L640 110"/>
+          <path class="ln" d="M395 190 L395 300" />
+          <path class="ln" d="M535 330 L640 130"/>
+          <path class="ln" d="M535 165 L640 185"/>
+          <path class="ln" d="M535 340 L640 200"/>
+          <path class="ln" d="M535 150 L640 262"/>
+          <path class="ln" d="M535 355 L640 345"/>
+          <path class="ln" d="M535 180 L640 408"/>
+        </svg>
+      </div>
+      <div class="grid g3" style="margin-top:18px">
+        <div class="card"><h3>FastAPI</h3><p>REST + SSE API, GitHub OAuth, chat persistence, key management and the webhook receiver.</p></div>
+        <div class="card"><h3>Celery + Redis</h3><p>Indexing is queued and polled via <code>/task-status/{id}</code>, so the UI stays responsive on big repos.</p></div>
+        <div class="card"><h3>Qdrant</h3><p>Embedded (<code>local</code>) for single-process dev, or a server (<code>server</code>) — required when API and worker run together.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TECH STACK -->
+  <section id="stack" class="alt">
+    <div class="container">
+      <h2>Tech stack</h2>
+      <p class="sub">Boring, well-supported building blocks.</p>
+      <div class="grid g2">
+        <div class="card"><h3>Backend</h3><div class="chips"><span class="chip">Python</span><span class="chip">FastAPI</span><span class="chip">Uvicorn</span><span class="chip">SQLAlchemy</span><span class="chip">Pydantic Settings</span><span class="chip">GitPython</span></div></div>
+        <div class="card"><h3>Async jobs</h3><div class="chips"><span class="chip">Celery 5</span><span class="chip">Redis</span></div></div>
+        <div class="card"><h3>AI &amp; retrieval</h3><div class="chips"><span class="chip">Qdrant</span><span class="chip">sentence-transformers</span><span class="chip">all-MiniLM-L6-v2</span><span class="chip">tree-sitter</span></div></div>
+        <div class="card"><h3>LLM providers</h3><div class="chips"><span class="chip">Ollama</span><span class="chip">OpenAI</span><span class="chip">Anthropic</span><span class="chip">DeepSeek</span></div></div>
+        <div class="card"><h3>Security</h3><div class="chips"><span class="chip">GitHub OAuth</span><span class="chip">JWT (HttpOnly cookie)</span><span class="chip">Fernet encryption</span><span class="chip">Semgrep</span></div></div>
+        <div class="card"><h3>Frontend</h3><div class="chips"><span class="chip">React 19</span><span class="chip">TypeScript (strict)</span><span class="chip">Vite</span><span class="chip">Tailwind CSS 4</span><span class="chip">React Router 7</span><span class="chip">react-markdown</span><span class="chip">highlight.js</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALL -->
+  <section id="install">
+    <div class="container">
+      <h2>Installation</h2>
+      <p class="sub">Requires Python 3.12+, Node.js 20+, Git, Redis and Qdrant. Ollama and a GitHub OAuth app are optional (guest mode works without OAuth).</p>
+
+      <h3>1 · Backend</h3>
+<pre><code>git clone &lt;repo-url&gt; CAISE &amp;&amp; cd CAISE
+python3 -m venv venv &amp;&amp; source venv/bin/activate
+pip install -r caise-backend/requirements.txt   <span class="c"># large: includes torch</span></code></pre>
+
+      <h3>2 · Redis &amp; Qdrant</h3>
+<pre><code>docker run -d --name caise-redis -p 6379:6379 redis:7
+docker run -d --name caise-qdrant -p 6333:6333 -p 6334:6334 \
+  -v "$(pwd)/qdrant_storage:/qdrant/storage" qdrant/qdrant</code></pre>
+
+      <h3>3 · Configure <code>caise-backend/.env</code></h3>
+<pre><code>ENVIRONMENT=development
+SECRET_KEY=&lt;python -c "import secrets; print(secrets.token_urlsafe(48))"&gt;
+FRONTEND_URL=http://localhost:3000
+GITHUB_CLIENT_ID=&lt;oauth client id&gt;
+GITHUB_CLIENT_SECRET=&lt;oauth client secret&gt;
+GITHUB_REDIRECT_URI=http://localhost:8000/api/v1/auth/github/callback
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+QDRANT_MODE=server
+QDRANT_HOST=localhost
+DEFAULT_LLM_PROVIDER=ollama
+DEFAULT_LOCAL_MODEL=qwen2.5-coder:32b</code></pre>
+
+      <h3>4 · Local model <span class="badge">optional</span></h3>
+<pre><code>ollama pull qwen2.5-coder:32b</code></pre>
+
+      <h3>5 · Frontend</h3>
+<pre><code>cd caise-frontend
+cp .env.example .env     <span class="c"># VITE_BACKEND_URL, VITE_DEV_PORT=3000, VITE_API_PREFIX=/api/v1</span>
+npm install</code></pre>
+
+      <h3>6 · Run (three terminals)</h3>
+<pre><code><span class="c"># API</span>
+cd caise-backend &amp;&amp; uvicorn app.main:app --reload --port 8000
+<span class="c"># Indexing worker</span>
+cd caise-backend &amp;&amp; celery -A app.core.celery.celery_app worker --loglevel=info
+<span class="c"># Frontend</span>
+cd caise-frontend &amp;&amp; npm run dev</code></pre>
+      <p>Open <a href="http://localhost:3000">http://localhost:3000</a> · API docs at <a href="http://localhost:8000/docs">localhost:8000/docs</a>.</p>
+      <div class="note"><b>Tip:</b> run backend commands from <code>caise-backend/</code>. The first search/index downloads the embedding model once. Use <code>QDRANT_MODE=server</code> when the API and worker run together — the embedded store allows one process only.</div>
+    </div>
+  </section>
+
+  <!-- USAGE -->
+  <section id="usage" class="alt">
+    <div class="container">
+      <h2>Using CAISE</h2>
+      <p class="sub">The typical workflow in the UI.</p>
+      <div class="grid g4">
+        <div class="card"><span class="ico">1️⃣</span><h3>Sign in</h3><p>GitHub login, or “Continue without signing in” for public repos.</p></div>
+        <div class="card"><span class="ico">2️⃣</span><h3>Add a repo</h3><p>Enter a URL, load branches, pick one and index. A job card shows progress.</p></div>
+        <div class="card"><span class="ico">3️⃣</span><h3>Chat</h3><p>Choose a repo (or all), pick a provider/model, and ask. Answers stream with sources.</p></div>
+        <div class="card"><span class="ico">4️⃣</span><h3>Stay fresh</h3><p>Re-index anytime or add a push webhook to keep the index current.</p></div>
+      </div>
+      <h3 style="margin-top:28px">Try the API directly</h3>
+<pre><code><span class="c"># guest session</span>
+curl -c jar -X POST http://localhost:8000/api/v1/auth/guest
+
+<span class="c"># queue indexing</span>
+curl -b jar -X POST http://localhost:8000/api/v1/index-repo-async \
+  -H 'Content-Type: application/json' \
+  -d '{"repo_url":"https://github.com/tiangolo/fastapi","branch":"master"}'
+
+<span class="c"># stream an answer (SSE)</span>
+curl -N -b jar -X POST http://localhost:8000/api/v1/chat/stream \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt":"How are dependencies resolved?","repo_id":"https://github.com/tiangolo/fastapi@master"}'</code></pre>
+    </div>
+  </section>
+
+  <!-- CONFIG -->
+  <section id="config">
+    <div class="container">
+      <h2>Configuration</h2>
+      <p class="sub">Environment variables read from <code>caise-backend/.env</code>. The most important ones are below.</p>
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-tab="p1">Core &amp; auth</button>
+        <button role="tab" aria-selected="false" data-tab="p2">Data services</button>
+        <button role="tab" aria-selected="false" data-tab="p3">LLM providers</button>
+        <button role="tab" aria-selected="false" data-tab="p4">Frontend</button>
+      </div>
+      <div class="panel tbl" id="p1"><table>
+        <tr><th>Variable</th><th>Default</th><th>Description</th></tr>
+        <tr><td><code>ENVIRONMENT</code></td><td><code>development</code></td><td><code>production</code> enables secure cookies and rejects an insecure <code>SECRET_KEY</code>.</td></tr>
+        <tr><td><code>SECRET_KEY</code></td><td>placeholder</td><td>JWT signing key. Must be strong in production.</td></tr>
+        <tr><td><code>API_KEY_ENCRYPTION_KEY</code></td><td>derived</td><td>Fernet key for saved LLM keys; empty → derived from <code>SECRET_KEY</code>.</td></tr>
+        <tr><td><code>GITHUB_CLIENT_ID / SECRET</code></td><td>empty</td><td>GitHub OAuth app credentials.</td></tr>
+        <tr><td><code>FRONTEND_URL</code></td><td><code>http://localhost:3000</code></td><td>Sole CORS origin and post-login redirect.</td></tr>
+        <tr><td><code>GUEST_ALLOWED_HOSTS</code></td><td><code>github.com</code></td><td>Hosts guests may index (public only).</td></tr>
+        <tr><td><code>GITHUB_WEBHOOK_SECRET</code></td><td>empty</td><td>HMAC secret; webhook is disabled while empty.</td></tr>
+      </table></div>
+      <div class="panel tbl" id="p2" hidden><table>
+        <tr><th>Variable</th><th>Default</th><th>Description</th></tr>
+        <tr><td><code>DATABASE_URL</code></td><td><code>sqlite:///./caise_metadata.db</code></td><td>Resolved against <code>caise-backend/</code> so API and worker share one DB.</td></tr>
+        <tr><td><code>CELERY_BROKER_URL</code></td><td><code>redis://localhost:6379/0</code></td><td>Broker and result backend.</td></tr>
+        <tr><td><code>QDRANT_MODE</code></td><td><code>local</code></td><td><code>local</code> (embedded) or <code>server</code>.</td></tr>
+        <tr><td><code>QDRANT_HOST / PORT / API_KEY</code></td><td><code>localhost / 6333</code></td><td>Used in server mode.</td></tr>
+        <tr><td><code>EMBEDDING_MODEL / DIM</code></td><td><code>all-MiniLM-L6-v2 / 384</code></td><td>Dimension must match the model; changing it requires a re-index.</td></tr>
+        <tr><td><code>SEMGREP_CONFIG</code></td><td><code>auto</code></td><td>Passed to <code>semgrep scan --config</code>.</td></tr>
+      </table></div>
+      <div class="panel tbl" id="p3" hidden><table>
+        <tr><th>Provider</th><th>Key variable</th><th>Default model</th></tr>
+        <tr><td>Ollama (local)</td><td>— (<code>OLLAMA_BASE_URL</code>)</td><td><code>qwen2.5-coder:32b</code></td></tr>
+        <tr><td>OpenAI</td><td><code>OPENAI_API_KEY</code></td><td><code>gpt-4o</code></td></tr>
+        <tr><td>Anthropic</td><td><code>ANTHROPIC_API_KEY</code></td><td><code>claude-3-5-sonnet-20241022</code></td></tr>
+        <tr><td>DeepSeek</td><td><code>DEEPSEEK_API_KEY</code></td><td><code>deepseek-chat</code></td></tr>
+        <tr><td colspan="3">Also: <code>DEFAULT_LLM_PROVIDER</code>, <code>LLM_TEMPERATURE</code> (0.1), <code>LLM_MAX_TOKENS</code> (4096), <code>LLM_TIMEOUT_SECONDS</code> (120) and <code>AVAILABLE_*_MODELS</code> lists. Users can save their own cloud keys in Settings; a user's key takes precedence.</td></tr>
+      </table></div>
+      <div class="panel tbl" id="p4" hidden><table>
+        <tr><th>Variable</th><th>Description</th></tr>
+        <tr><td><code>VITE_BACKEND_URL</code></td><td>Backend the dev/preview server proxies <code>/api</code> to (required).</td></tr>
+        <tr><td><code>VITE_DEV_PORT</code></td><td>Dev/preview port; must match <code>FRONTEND_URL</code>.</td></tr>
+        <tr><td><code>VITE_API_PREFIX</code></td><td>API prefix; must match <code>API_V1_STR</code> (<code>/api/v1</code>).</td></tr>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- API -->
+  <section id="api" class="alt">
+    <div class="container">
+      <h2>API reference</h2>
+      <p class="sub">Base path <code>/api/v1</code>. Interactive docs at <code>/docs</code>. Auth is a session cookie or <code>Authorization: Bearer</code> JWT.</p>
+      <div class="tbl"><table>
+        <tr><th>Endpoint</th><th>Auth</th><th>Purpose</th></tr>
+        <tr><td><span class="m">GET</span> <code>/auth/github</code> · <code>/auth/github/callback</code></td><td>—</td><td>GitHub OAuth flow; sets session cookie.</td></tr>
+        <tr><td><span class="m post">POST</span> <code>/auth/guest</code></td><td>—</td><td>Start a guest session.</td></tr>
+        <tr><td><span class="m">GET</span> <code>/auth/me</code> · <span class="m post">POST</span> <code>/auth/logout</code></td><td>user</td><td>Current user / sign out.</td></tr>
+        <tr><td><span class="m post">POST</span> <code>/index-repo-async</code></td><td>user</td><td>Queue indexing of <code>{repo_url, branch, access_token?}</code>.</td></tr>
+        <tr><td><span class="m">GET</span> <code>/task-status/{task_id}</code></td><td>user</td><td>Celery task state and result.</td></tr>
+        <tr><td><span class="m">GET</span> <code>/repos</code> · <span class="m post">POST</span> <code>/repos/branches</code> · <span class="m">GET</span> <code>/repos/files</code></td><td>user</td><td>List repos, remote branches, indexed files.</td></tr>
+        <tr><td><span class="m del">DELETE</span> <code>/repos?repo_id=</code></td><td>owner</td><td>Remove index, checkout and metadata.</td></tr>
+        <tr><td><span class="m post">POST</span> <code>/search</code> · <code>/ask</code></td><td>user</td><td>Semantic search / non-streaming RAG answer.</td></tr>
+        <tr><td><span class="m post">POST</span> <code>/chat/stream</code></td><td>user</td><td>SSE: <code>chat</code>, <code>start</code>, <code>sources</code>, <code>token</code>…, <code>done</code>/<code>error</code>.</td></tr>
+        <tr><td><span class="m">GET</span> <code>/chats</code> · <code>/chats/{id}</code> · <span class="m del">DELETE</span> <code>/chats/{id}</code></td><td>user</td><td>Stored chat history.</td></tr>
+        <tr><td><span class="m">GET</span> <code>/models</code></td><td>optional</td><td>Provider/model catalog with <code>configured</code> flags.</td></tr>
+        <tr><td><span class="m">GET</span> <code>/me/keys</code> · <span class="m put">PUT</span>/<span class="m del">DELETE</span> <code>/me/keys/{provider}</code></td><td>GitHub user</td><td>Manage saved provider keys.</td></tr>
+        <tr><td><span class="m post">POST</span> <code>/github-webhook</code></td><td>HMAC</td><td>Re-index on <code>push</code> for registered branches.</td></tr>
+        <tr><td><span class="m">GET</span> <code>/health</code></td><td>—</td><td>Liveness check.</td></tr>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- SECURITY -->
+  <section id="security">
+    <div class="container">
+      <h2>Security model</h2>
+      <p class="sub">Designed so that code, credentials and keys stay where they belong.</p>
+      <div class="grid g3">
+        <div class="card"><h3>Access control</h3><p>Every vector stores <code>allowed_users</code>; searches filter on the caller. Access is granted only after a clone/pull succeeds with the user's own credentials.</p></div>
+        <div class="card"><h3>Sessions &amp; CORS</h3><p>JWT in an HttpOnly, SameSite=Lax cookie (Secure in production). CORS permits only <code>FRONTEND_URL</code>.</p></div>
+        <div class="card"><h3>Secrets</h3><p>Repo tokens are per-run and stripped from <code>.git/config</code>. Saved LLM keys are Fernet-encrypted; only a 4-char hint is shown.</p></div>
+        <div class="card"><h3>Input hardening</h3><p>Repo URLs and git refs are allow-list validated; git runs without a shell; symlinks are not followed.</p></div>
+        <div class="card"><h3>Webhook</h3><p>HMAC-SHA256, constant-time comparison; disabled until a secret is configured.</p></div>
+        <div class="card"><h3>Provider errors</h3><p>Upstream error text is never forwarded to clients, since it can echo credentials.</p></div>
+      </div>
+      <h3 style="margin-top:28px">Production checklist</h3>
+      <div class="card">
+        <ul style="margin:0;padding-left:20px;color:var(--muted)">
+          <li>Set <code>ENVIRONMENT=production</code>, a strong <code>SECRET_KEY</code>, and a dedicated <code>API_KEY_ENCRYPTION_KEY</code> (rotating either invalidates saved user keys).</li>
+          <li>Serve the built frontend and <code>/api</code> from one origin behind a TLS reverse proxy; disable buffering for SSE.</li>
+          <li>Use <code>QDRANT_MODE=server</code> and a Redis reachable by both API and worker.</li>
+          <li>Update <code>FRONTEND_URL</code>, <code>GITHUB_REDIRECT_URI</code> and the OAuth app callback to public URLs.</li>
+          <li>Back up <code>caise_metadata.db</code> and the Qdrant volume.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- STRUCTURE -->
+  <section id="structure" class="alt">
+    <div class="container">
+      <h2>Project structure</h2>
+<pre><code>CAISE/
+├── caise-backend/
+│   ├── app/
+│   │   ├── main.py              <span class="c"># FastAPI app, CORS, lifespan</span>
+│   │   ├── api/                 <span class="c"># deps + v1 routers (auth, chat, keys, indexing, webhook)</span>
+│   │   ├── core/                <span class="c"># config, celery, database, JWT, crypto</span>
+│   │   ├── models/              <span class="c"># User, Organization, RepositoryMetadata, Chat, ...</span>
+│   │   ├── services/
+│   │   │   ├── ingestion/       <span class="c"># git clone/pull, ls-remote, diff</span>
+│   │   │   ├── parser/          <span class="c"># tree-sitter + generic chunking</span>
+│   │   │   ├── vector/          <span class="c"># embeddings + Qdrant store</span>
+│   │   │   ├── llm/             <span class="c"># catalog, streaming, prompts</span>
+│   │   │   ├── security/        <span class="c"># Semgrep scanner</span>
+│   │   │   └── pipeline.py      <span class="c"># clone → parse → embed → upsert</span>
+│   │   └── workers/tasks.py     <span class="c"># Celery task</span>
+│   └── requirements.txt
+├── caise-frontend/              <span class="c"># React 19 + Vite + Tailwind SPA</span>
+└── docs/index.html              <span class="c"># this page</span></code></pre>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="container">
+      <h2>FAQ &amp; troubleshooting</h2>
+      <p class="sub">Common questions and fixes.</p>
+      <details><summary>“Storage folder is already accessed by another instance of Qdrant client”</summary><p>Embedded Qdrant allows one process. Set <code>QDRANT_MODE=server</code> and run Qdrant in Docker.</p></details>
+      <details><summary>Indexing never leaves “queued”</summary><p>Redis isn't running or no Celery worker is started. Start both and retry.</p></details>
+      <details><summary>Login redirects loop / CORS errors</summary><p><code>FRONTEND_URL</code> in the backend must equal the frontend origin (<code>http://localhost:&lt;VITE_DEV_PORT&gt;</code>).</p></details>
+      <details><summary><code>provider_not_configured</code> (503)</summary><p>There is neither a server-side key nor a saved user key for that cloud provider. Add one in <code>.env</code> or Settings.</p></details>
+      <details><summary>Ollama requests fail with <code>provider_unreachable</code></summary><p>Ensure Ollama is running, <code>OLLAMA_BASE_URL</code> is correct and the model has been pulled.</p></details>
+      <details><summary>“Model … is not available for provider …”</summary><p>Add the model to the matching <code>AVAILABLE_*_MODELS</code> variable.</p></details>
+      <details><summary>Does my code leave my machine?</summary><p>Not with Ollama and a local/self-hosted Qdrant. With cloud providers, retrieved snippets are sent to that provider as prompt context.</p></details>
+      <details><summary>Limitations</summary><p>AST-aware chunking is Python-only; supported file types are <code>.py .js .ts .java .go .rs .md .json</code>; only http(s) Git remotes; Semgrep findings are returned in the index task result and are not persisted.</p></details>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container row">
+    <div><b>CAISE</b> — Codebase AI Search &amp; Evaluation</div>
+    <div><a href="#top">Back to top ↑</a></div>
+  </div>
+</footer>
+
+<script>
+  // Theme toggle (persisted); default follows the OS preference.
+  (function () {
+    var root = document.documentElement, key = "caise-theme";
+    var saved = localStorage.getItem(key);
+    if (saved) root.setAttribute("data-theme", saved);
+    document.getElementById("theme").addEventListener("click", function () {
+      var cur = root.getAttribute("data-theme") ||
+        (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      var next = cur === "dark" ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      localStorage.setItem(key, next);
+    });
+  })();
+
+  // Config tabs.
+  document.querySelectorAll(".tabs button").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll(".tabs button").forEach(function (b) { b.setAttribute("aria-selected", "false"); });
+      document.querySelectorAll(".panel").forEach(function (p) { p.hidden = true; });
+      btn.setAttribute("aria-selected", "true");
+      document.getElementById(btn.dataset.tab).hidden = false;
+    });
+  });
+</script>
+</body>
+</html>
