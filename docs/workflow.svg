@@ -2,6 +2,8 @@
   <title id="title">CAISE indexing and question-answering workflow</title>
   <desc id="desc">The upper row indexes a repository: clone, detect changes, chunk and embed, scan, and store. The lower row answers a question by embedding it, retrieving allowed code chunks, and streaming an LLM answer with sources.</desc>
   <style>
+    :root { --fg: #1f2937; --muted: #475569; --border: #64748b; --accent: #7c3aed; --c1: #bae6fd; --c2: #bbf7d0; --c3: #fde68a; --c4: #fbcfe8; --c5: #ddd6fe; --c6: #fed7aa; }
+    @media (prefers-color-scheme: dark) { :root { --fg: #f8fafc; --muted: #cbd5e1; --border: #94a3b8; --accent: #c4b5fd; --c1: #075985; --c2: #166534; --c3: #92400e; --c4: #9d174d; --c5: #5b21b6; --c6: #9a3412; } }
     text { fill: var(--fg); font-family: "Comic Sans MS", "Segoe Print", "Trebuchet MS", sans-serif; }
     .label { font-size: 16px; font-weight: 700; }
     .detail { font-size: 12px; fill: var(--muted); }

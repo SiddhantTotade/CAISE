@@ -2,6 +2,8 @@
   <title id="title">CAISE system architecture</title>
   <desc id="desc">A browser connects to the FastAPI API. The API accesses metadata, Qdrant, LLM providers, and Redis. Redis dispatches indexing work to Celery, which reads Git repositories, runs Semgrep, writes Qdrant, and updates metadata.</desc>
   <style>
+    :root { --fg: #1f2937; --muted: #475569; --border: #64748b; --surface: #f8fafc; --accent: #7c3aed; --c1: #bae6fd; --c2: #bbf7d0; --c3: #fde68a; --c4: #fbcfe8; --c5: #ddd6fe; --c6: #fed7aa; }
+    @media (prefers-color-scheme: dark) { :root { --fg: #f8fafc; --muted: #cbd5e1; --border: #94a3b8; --surface: #172033; --accent: #c4b5fd; --c1: #075985; --c2: #166534; --c3: #92400e; --c4: #9d174d; --c5: #5b21b6; --c6: #9a3412; } }
     text { fill: var(--fg); font-family: "Comic Sans MS", "Segoe Print", "Trebuchet MS", sans-serif; }
     .label { font-size: 16px; font-weight: 700; }
     .detail { font-size: 12px; fill: var(--muted); }
