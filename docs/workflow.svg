@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+  <title id="title">CAISE indexing and question-answering workflow</title>
+  <desc id="desc">The upper row indexes a repository: clone, detect changes, chunk and embed, scan, and store. The lower row answers a question by embedding it, retrieving allowed code chunks, and streaming an LLM answer with sources.</desc>
+  <style>
+    text { fill: var(--fg); font-family: "Comic Sans MS", "Segoe Print", "Trebuchet MS", sans-serif; }
+    .label { font-size: 16px; font-weight: 700; }
+    .detail { font-size: 12px; fill: var(--muted); }
+    .node { stroke: var(--fg); stroke-width: 2.5; stroke-linejoin: round; }
+    .arrow { fill: none; stroke: var(--fg); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrow); }
+    .loop { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 7 6; stroke-linecap: round; marker-end: url(#accentArrow); }
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--fg)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <marker id="accentArrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  </defs>
+
+  <text x="38" y="45" class="label">1. Index a repository</text>
+  <g transform="rotate(-1 132 112)"><rect class="node" x="38" y="73" width="188" height="78" rx="12" fill="var(--c1)"/><text x="132" y="108" text-anchor="middle" class="label">Clone or pull</text><text x="132" y="130" text-anchor="middle" class="detail">selected branch</text></g>
+  <g transform="rotate(.7 357 112)"><rect class="node" x="267" y="73" width="180" height="78" rx="12" fill="var(--c4)"/><text x="357" y="108" text-anchor="middle" class="label">Diff &amp; chunk</text><text x="357" y="130" text-anchor="middle" class="detail">changed files only</text></g>
+  <g transform="rotate(-.7 578 112)"><rect class="node" x="489" y="73" width="178" height="78" rx="12" fill="var(--c5)"/><text x="578" y="108" text-anchor="middle" class="label">Embed code</text><text x="578" y="130" text-anchor="middle" class="detail">vector + access data</text></g>
+  <g transform="rotate(.9 828 112)"><path class="node" d="M739 89 Q828 69 917 89 L917 136 Q828 156 739 136 Z" fill="var(--c2)"/><text x="828" y="117" text-anchor="middle" class="label">Qdrant</text></g>
+  <path class="arrow" d="M228 112 H260"/><path class="arrow" d="M450 112 H482"/><path class="arrow" d="M670 112 H732"/>
+  <path d="M487 154 C487 178 410 181 359 162" class="loop"/><text x="413" y="190" class="detail">next index: process only changes</text>
+  <text x="764" y="181" class="detail">Semgrep runs alongside indexing</text>
+
+  <path d="M39 215 H921" stroke="var(--border)" stroke-width="2" stroke-dasharray="6 7"/>
+  <text x="38" y="250" class="label">2. Ask about the code</text>
+  <g transform="rotate(.8 155 303)"><rect class="node" x="38" y="269" width="234" height="68" rx="12" fill="var(--c6)"/><text x="155" y="309" text-anchor="middle" class="label">Natural-language question</text></g>
+  <g transform="rotate(-.7 399 303)"><rect class="node" x="309" y="269" width="180" height="68" rx="12" fill="var(--c3)"/><text x="399" y="309" text-anchor="middle" class="label">Embed &amp; retrieve</text></g>
+  <g transform="rotate(.7 623 303)"><rect class="node" x="530" y="269" width="186" height="68" rx="12" fill="var(--c1)"/><text x="623" y="298" text-anchor="middle" class="label">LLM answer</text><text x="623" y="320" text-anchor="middle" class="detail">grounded in code</text></g>
+  <g transform="rotate(-.8 835 303)"><rect class="node" x="755" y="269" width="160" height="68" rx="12" fill="var(--c4)"/><text x="835" y="298" text-anchor="middle" class="label">Stream to UI</text><text x="835" y="320" text-anchor="middle" class="detail">answer + sources</text></g>
+  <path class="arrow" d="M275 303 H302"/><path class="arrow" d="M492 303 H523"/><path class="arrow" d="M719 303 H748"/>
+</svg>
