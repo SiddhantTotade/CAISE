@@ -1,23 +1,30 @@
+import logging
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any, Dict, Iterable, List
+
 import tree_sitter_python as tspython
 from tree_sitter import Language, Parser
+
+logger = logging.getLogger(__name__)
+
+SUPPORTED_SUFFIXES = frozenset({".py", ".js", ".ts", ".java", ".go", ".rs", ".md", ".json"})
 
 class ASTParserService:
     def __init__(self):
         self.py_language = Language(tspython.language())
         self.parser = Parser(self.py_language)
 
-    def parse_file(self, file_path: Path) -> List[Dict[str, Any]]:
+    def parse_file(self, file_path: Path, root: Path) -> List[Dict[str, Any]]:
+        """Chunk one file; chunks carry the path relative to `root` so they match `git diff` output."""
         if not file_path.exists():
             raise FileNotFoundError(f"File not found: {file_path}")
 
         code_bytes = file_path.read_bytes()
+        rel_path = file_path.relative_to(root).as_posix()
 
         if file_path.suffix == ".py":
-            return self._parse_python_ast(code_bytes, str(file_path))
-        else:
-            return self._fallback_generic_chunking(code_bytes, str(file_path))
+            return self._parse_python_ast(code_bytes, rel_path)
+        return self._fallback_generic_chunking(code_bytes, rel_path)
 
     def _parse_python_ast(self, code_bytes: bytes, file_path: str) -> List[Dict[str, Any]]:
         tree = self.parser.parse(code_bytes)
@@ -85,16 +92,28 @@ class ASTParserService:
 
         return chunks
 
+    @staticmethod
+    def is_supported(path: Path) -> bool:
+        return path.suffix in SUPPORTED_SUFFIXES
+
+    def parse_files(self, root: Path, relative_paths: Iterable[str]) -> List[Dict[str, Any]]:
+        """Chunk the given repo-relative files; unsupported, missing and symlinked paths are skipped."""
+        chunks: List[Dict[str, Any]] = []
+        for rel in relative_paths:
+            file_path = root / rel
+            # Symlinks could point outside the checkout; never follow them.
+            if not self.is_supported(file_path) or file_path.is_symlink() or not file_path.is_file():
+                continue
+            try:
+                chunks.extend(self.parse_file(file_path, root))
+            except Exception as e:
+                logger.warning("Skipping file %s due to parse error: %s", file_path, e)
+        return chunks
+
     def parse_repository_directory(self, repo_path: Path) -> List[Dict[str, Any]]:
-        all_chunks = []
-
-        for file_path in repo_path.rglob("*"):
-            if file_path.is_file() and ".git" not in file_path.parts:
-                if file_path.suffix in [".py", ".js", ".ts", ".java", ".go", ".rs", ".md", ".json"]:
-                    try:
-                        file_chunks = self.parse_file(file_path)
-                        all_chunks.extend(file_chunks)
-                    except Exception as e:
-                        print(f"Skipping file {file_path} due to parse error: {e}")
-
-        return all_chunks
+        relative_paths = (
+            p.relative_to(repo_path).as_posix()
+            for p in repo_path.rglob("*")
+            if ".git" not in p.relative_to(repo_path).parts
+        )
+        return self.parse_files(repo_path, relative_paths)

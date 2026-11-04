@@ -1,2 +1,5 @@
 .env
 /storage/repos
+__pycache__/
+*.pyc
+*.db

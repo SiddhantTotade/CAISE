@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --color-canvas: #fafaf9;
+  --color-surface: #ffffff;
+  --color-line: #e7e5e4;
+  --color-ink: #1c1917;
+  --color-muted: #78716c;
+  --color-faint: #a8a29e;
+  --color-code-bg: #16161a;
+}
+
+html, body, #root { height: 100%; }
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: #d6d3d1; }
+:focus-visible { outline: 2px solid #1c1917; outline-offset: 2px; }
+
+/* slim, unobtrusive scrollbars */
+* { scrollbar-width: thin; scrollbar-color: #d6d3d1 transparent; }
+
+@keyframes caret { 50% { opacity: 0; } }
+.caret::after {
+  content: "";
+  display: inline-block;
+  width: 0.5ch;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: currentColor;
+  animation: caret 1s steps(1) infinite;
+}
+
+/* shared dropdown menu entrance */
+@keyframes dropdown-pop { from { opacity: 0; transform: translateY(-4px) scale(0.98); } }
+.dropdown-pop { animation: dropdown-pop 120ms ease-out; transform-origin: top; }
+@media (prefers-reduced-motion: reduce) { .dropdown-pop { animation: none; } }
+
+/* highlight.js theme tuned for the dark code surface */
+.hljs { color: #e4e4e7; }
+.hljs-comment, .hljs-quote { color: #71717a; font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-built_in { color: #c4b5fd; }
+.hljs-string, .hljs-attr, .hljs-template-tag, .hljs-regexp { color: #86efac; }
+.hljs-number, .hljs-symbol, .hljs-bullet { color: #fdba74; }
+.hljs-title, .hljs-title.function_, .hljs-section { color: #7dd3fc; }
+.hljs-title.class_, .hljs-type { color: #fcd34d; }
+.hljs-variable, .hljs-params, .hljs-property { color: #e4e4e7; }
+.hljs-meta, .hljs-tag, .hljs-name { color: #f9a8d4; }
+.hljs-addition { color: #86efac; background: rgba(134, 239, 172, 0.1); }
+.hljs-deletion { color: #fca5a5; background: rgba(252, 165, 165, 0.1); }

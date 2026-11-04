@@ -1,11 +1,16 @@
-import subprocess
 import json
+import logging
+import subprocess
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Any, Dict, List, Optional
+
+from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 class SemgrepScannerService:
-    def __init__(self, config: str = "auto"):
-        self.config = config
+    def __init__(self, config: Optional[str] = None) -> None:
+        self.config = config or settings.SEMGREP_CONFIG
 
     def scan_repository(self, repo_path: Path) -> List[Dict[str, Any]]:
         if not repo_path.exists():
@@ -25,7 +30,7 @@ class SemgrepScannerService:
             )
 
             if result.returncode not in [0, 1]:
-                print(f"Semgrep execution warning/error: {result.stderr}")
+                logger.warning("Semgrep execution error: %s", result.stderr)
                 return []
 
             data = json.loads(result.stdout)
@@ -45,8 +50,8 @@ class SemgrepScannerService:
             return findings
 
         except json.JSONDecodeError:
-            print("Failed to parse")
+            logger.error("Failed to parse semgrep JSON output")
             return []
-        except Exception as e:
-            print(f"Error running semgrep scan: {e}")
+        except Exception:
+            logger.exception("Error running semgrep scan")
             return []
