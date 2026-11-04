@@ -87,7 +87,4 @@
   <path class="arrow" d="M593 196 C659 196 663 497 712 505"/>
   <path class="arrow" d="M593 176 C661 176 670 323 726 323"/>
   <path class="arrow" d="M593 187 C660 187 668 422 726 422"/>
-  <text x="250" y="151" class="detail">HTTPS · SSE</text>
-  <text x="625" y="340" class="detail">index</text>
-  <text x="612" y="217" class="detail">query</text>
 </svg>
