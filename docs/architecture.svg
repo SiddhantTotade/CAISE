@@ -1,123 +1,107 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640" role="img" aria-labelledby="title desc">
-  <title id="title">CAISE architecture and service calls</title>
-  <desc id="desc">A two-lane CAISE architecture. In the search lane, Browser calls FastAPI, which queries Qdrant and calls an LLM before streaming results back. In the indexing lane, FastAPI enqueues a job in Redis, Celery consumes it, reads Git repositories, processes code, runs Semgrep, and writes Qdrant and SQLite.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1290" role="img" aria-labelledby="title desc">
+  <title id="title">CAISE architecture service call map</title>
+  <desc id="desc">A row-by-row map of CAISE direct service calls. The request path is Browser to FastAPI, then FastAPI to Qdrant, SQLite, and the LLM. The indexing path is FastAPI to Redis, then Celery to Redis, Git, Semgrep, Qdrant, and SQLite.</desc>
   <style>
-    :root { --fg:#172033; --muted:#475569; --line:#64748b; --surface:#f8fafc; --lane:#f1f5f9; --query:#0369a1; --index:#b45309; --success:#15803d; --api:#bbf7d0; --browser:#bae6fd; --store:#ddd6fe; --service:#fde68a; --external:#fed7aa; --scan:#fbcfe8; }
-    @media (prefers-color-scheme: dark) { :root { --fg:#f8fafc; --muted:#cbd5e1; --line:#94a3b8; --surface:#101827; --lane:#172033; --query:#7dd3fc; --index:#fdba74; --success:#86efac; --api:#166534; --browser:#075985; --store:#5b21b6; --service:#92400e; --external:#9a3412; --scan:#9d174d; } }
+    :root { --fg:#172033; --muted:#475569; --border:#64748b; --panel:#f8fafc; --browser:#bae6fd; --api:#bbf7d0; --data:#ddd6fe; --ai:#fde68a; --queue:#fed7aa; --worker:#fbcfe8; --git:#cffafe; --scan:#fecdd3; --arrow:#2563eb; --write:#15803d; }
+    @media (prefers-color-scheme: dark) { :root { --fg:#f8fafc; --muted:#cbd5e1; --border:#94a3b8; --panel:#172033; --browser:#075985; --api:#166534; --data:#5b21b6; --ai:#92400e; --queue:#9a3412; --worker:#9d174d; --git:#155e75; --scan:#9f1239; --arrow:#7dd3fc; --write:#86efac; } }
     text { fill:var(--fg); font-family:"Comic Sans MS", "Segoe Print", "Trebuchet MS", sans-serif; }
-    .title { font-size:20px; font-weight:700; }
-    .lane-title { font-size:17px; font-weight:700; }
-    .label { font-size:16px; font-weight:700; }
-    .detail { font-size:12px; fill:var(--muted); }
-    .call { font-size:12px; font-weight:700; }
-    .lane { fill:var(--lane); stroke:var(--line); stroke-width:2; stroke-dasharray:7 6; }
+    .title { font-size:25px; font-weight:700; }
+    .heading { font-size:20px; font-weight:700; }
+    .label { font-size:19px; font-weight:700; }
+    .detail { font-size:14px; fill:var(--muted); }
+    .action { font-size:15px; font-weight:700; }
+    .panel { fill:var(--panel); stroke:var(--border); stroke-width:2; stroke-dasharray:8 7; }
     .node { stroke:var(--fg); stroke-width:2.5; stroke-linejoin:round; }
-    .query { fill:none; stroke:var(--query); stroke-width:3; stroke-linecap:round; stroke-linejoin:round; marker-end:url(#query-arrow); }
-    .reply { fill:none; stroke:var(--query); stroke-width:2.25; stroke-dasharray:6 5; stroke-linecap:round; marker-end:url(#query-arrow); }
-    .index { fill:none; stroke:var(--index); stroke-width:3; stroke-linecap:round; stroke-linejoin:round; marker-end:url(#index-arrow); }
-    .write { fill:none; stroke:var(--success); stroke-width:3; stroke-linecap:round; stroke-linejoin:round; marker-end:url(#success-arrow); }
+    .call { fill:none; stroke:var(--arrow); stroke-width:3.5; stroke-linecap:round; marker-end:url(#call-head); }
+    .write { fill:none; stroke:var(--write); stroke-width:3.5; stroke-linecap:round; marker-end:url(#write-head); }
   </style>
   <defs>
-    <marker id="query-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--query)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
-    <marker id="index-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--index)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
-    <marker id="success-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--success)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <marker id="call-head" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--arrow)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <marker id="write-head" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--write)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
   </defs>
 
-  <text x="40" y="38" class="title">CAISE service architecture</text>
-  <text x="40" y="61" class="detail">Solid arrows are service calls or writes. Dashed arrows are returned data.</text>
+  <text x="42" y="42" class="title">CAISE architecture — who calls what</text>
+  <text x="42" y="68" class="detail">One row shows one direct caller, dependency, and action. Blue = call/read. Green = index write.</text>
 
-  <rect class="lane" x="30" y="85" width="940" height="215" rx="18"/>
-  <text x="55" y="120" class="lane-title">1. Search &amp; chat — synchronous request path</text>
+  <rect class="panel" x="30" y="94" width="1020" height="492" rx="20"/>
+  <text x="58" y="132" class="heading">A. Search and chat</text>
+  <text x="58" y="155" class="detail">The browser calls FastAPI only. FastAPI controls retrieval, metadata lookup, and model generation.</text>
 
-  <g transform="rotate(-.6 140 201)">
-    <rect class="node" x="60" y="155" width="160" height="88" rx="12" fill="var(--browser)"/>
-    <text x="140" y="191" text-anchor="middle" class="label">React browser</text>
-    <text x="140" y="214" text-anchor="middle" class="detail">search · chat · sources</text>
-  </g>
-  <g transform="rotate(.5 393 201)">
-    <rect class="node" x="293" y="155" width="200" height="88" rx="12" fill="var(--api)"/>
-    <text x="393" y="191" text-anchor="middle" class="label">FastAPI API</text>
-    <text x="393" y="214" text-anchor="middle" class="detail">auth · retrieval · SSE</text>
-  </g>
-  <g transform="rotate(-.5 645 201)">
-    <path class="node" d="M558 171 Q645 152 732 171 L732 226 Q645 245 558 226 Z" fill="var(--store)"/>
-    <path d="M558 181 Q645 200 732 181" fill="none" stroke="var(--fg)" stroke-width="1" opacity=".45"/>
-    <text x="645" y="205" text-anchor="middle" class="label">Qdrant</text>
-  </g>
-  <g transform="rotate(.6 868 201)">
-    <rect class="node" x="778" y="155" width="180" height="88" rx="12" fill="var(--service)"/>
-    <text x="868" y="191" text-anchor="middle" class="label">LLM provider</text>
-    <text x="868" y="214" text-anchor="middle" class="detail">Ollama · cloud APIs</text>
-  </g>
+  <rect class="node" x="80" y="190" width="230" height="72" rx="14" fill="var(--browser)"/>
+  <text x="195" y="222" text-anchor="middle" class="label">React browser</text>
+  <text x="195" y="245" text-anchor="middle" class="detail">question or chat action</text>
+  <rect class="node" x="720" y="190" width="230" height="72" rx="14" fill="var(--api)"/>
+  <text x="835" y="222" text-anchor="middle" class="label">FastAPI API</text>
+  <text x="835" y="245" text-anchor="middle" class="detail">authentication + SSE</text>
+  <path class="call" d="M312 226 H710"/>
+  <text x="510" y="209" text-anchor="middle" class="action" fill="var(--arrow)">send API request</text>
 
-  <path class="query" d="M222 181 H285"/>
-  <text x="253" y="165" text-anchor="middle" class="call" fill="var(--query)">HTTPS / SSE</text>
-  <path class="query" d="M496 181 H550"/>
-  <text x="523" y="165" text-anchor="middle" class="call" fill="var(--query)">top-k search</text>
-  <path class="reply" d="M550 222 H496"/>
-  <text x="523" y="250" text-anchor="middle" class="detail">allowed code chunks</text>
-  <path class="query" d="M735 181 H770"/>
-  <text x="752" y="165" text-anchor="middle" class="call" fill="var(--query)">grounded prompt</text>
-  <path class="reply" d="M770 222 H735"/>
-  <text x="752" y="250" text-anchor="middle" class="detail">streamed answer</text>
-  <path class="reply" d="M293 222 H222"/>
-  <text x="257" y="275" text-anchor="middle" class="detail">answer + source locations</text>
+  <rect class="node" x="80" y="292" width="230" height="72" rx="14" fill="var(--api)"/>
+  <text x="195" y="335" text-anchor="middle" class="label">FastAPI API</text>
+  <path class="node" d="M720 302 Q835 282 950 302 L950 354 Q835 374 720 354 Z" fill="var(--data)"/>
+  <text x="835" y="335" text-anchor="middle" class="label">Qdrant vectors</text>
+  <path class="call" d="M312 328 H710"/>
+  <text x="510" y="311" text-anchor="middle" class="action" fill="var(--arrow)">retrieve allowed code chunks</text>
 
-  <rect class="lane" x="30" y="325" width="940" height="280" rx="18"/>
-  <text x="55" y="360" class="lane-title">2. Repository indexing — asynchronous worker path</text>
-  <text x="55" y="382" class="detail">The API queues work and returns immediately; Celery performs the expensive pipeline.</text>
+  <rect class="node" x="80" y="394" width="230" height="72" rx="14" fill="var(--api)"/>
+  <text x="195" y="437" text-anchor="middle" class="label">FastAPI API</text>
+  <path class="node" d="M720 404 Q835 384 950 404 L950 456 Q835 476 720 456 Z" fill="var(--data)"/>
+  <text x="835" y="437" text-anchor="middle" class="label">SQLite metadata</text>
+  <path class="call" d="M312 430 H710"/>
+  <text x="510" y="413" text-anchor="middle" class="action" fill="var(--arrow)">load chat and repository metadata</text>
 
-  <g transform="rotate(-.5 142 470)">
-    <rect class="node" x="62" y="425" width="160" height="88" rx="12" fill="var(--api)"/>
-    <text x="142" y="461" text-anchor="middle" class="label">FastAPI API</text>
-    <text x="142" y="484" text-anchor="middle" class="detail">start indexing</text>
-  </g>
-  <g transform="rotate(.5 348 470)">
-    <rect class="node" x="268" y="425" width="160" height="88" rx="12" fill="var(--store)"/>
-    <text x="348" y="461" text-anchor="middle" class="label">Redis</text>
-    <text x="348" y="484" text-anchor="middle" class="detail">job queue</text>
-  </g>
-  <g transform="rotate(-.6 555 470)">
-    <rect class="node" x="475" y="425" width="160" height="88" rx="12" fill="var(--service)"/>
-    <text x="555" y="461" text-anchor="middle" class="label">Celery worker</text>
-    <text x="555" y="484" text-anchor="middle" class="detail">consumes job</text>
-  </g>
-  <g transform="rotate(.6 780 470)">
-    <rect class="node" x="690" y="425" width="180" height="88" rx="12" fill="var(--external)"/>
-    <text x="780" y="461" text-anchor="middle" class="label">Git repository</text>
-    <text x="780" y="484" text-anchor="middle" class="detail">clone or pull branch</text>
-  </g>
+  <rect class="node" x="80" y="496" width="230" height="72" rx="14" fill="var(--api)"/>
+  <text x="195" y="539" text-anchor="middle" class="label">FastAPI API</text>
+  <rect class="node" x="720" y="496" width="230" height="72" rx="14" fill="var(--ai)"/>
+  <text x="835" y="528" text-anchor="middle" class="label">LLM provider</text>
+  <text x="835" y="551" text-anchor="middle" class="detail">Ollama or cloud model</text>
+  <path class="call" d="M312 532 H710"/>
+  <text x="510" y="515" text-anchor="middle" class="action" fill="var(--arrow)">send grounded prompt</text>
 
-  <path class="index" d="M224 451 H260"/>
-  <text x="242" y="435" text-anchor="middle" class="call" fill="var(--index)">enqueue</text>
-  <path class="index" d="M430 451 H467"/>
-  <text x="449" y="435" text-anchor="middle" class="call" fill="var(--index)">consume</text>
-  <path class="index" d="M637 451 H682"/>
-  <text x="659" y="435" text-anchor="middle" class="call" fill="var(--index)">clone / pull</text>
+  <rect class="panel" x="30" y="612" width="1020" height="638" rx="20"/>
+  <text x="58" y="650" class="heading">B. Repository indexing</text>
+  <text x="58" y="673" class="detail">FastAPI queues the job. The Celery worker performs every remaining indexing action.</text>
 
-  <g transform="rotate(-.5 245 557)">
-    <rect class="node" x="110" y="535" width="270" height="52" rx="12" fill="var(--browser)"/>
-    <text x="245" y="567" text-anchor="middle" class="label">Chunk &amp; embed changed code</text>
-  </g>
-  <g transform="rotate(.5 558 557)">
-    <path class="node" d="M478 540 Q558 523 638 540 L638 578 Q558 595 478 578 Z" fill="var(--store)"/>
-    <text x="558" y="566" text-anchor="middle" class="label">Qdrant vectors</text>
-  </g>
-  <g transform="rotate(-.5 810 557)">
-    <path class="node" d="M730 540 Q810 523 890 540 L890 578 Q810 595 730 578 Z" fill="var(--scan)"/>
-    <text x="810" y="566" text-anchor="middle" class="label">SQLite metadata</text>
-  </g>
-  <g transform="rotate(.6 435 557)">
-    <rect class="node" x="387" y="535" width="96" height="52" rx="12" fill="var(--scan)"/>
-    <text x="435" y="567" text-anchor="middle" class="label">Semgrep</text>
-  </g>
+  <rect class="node" x="80" y="708" width="230" height="72" rx="14" fill="var(--api)"/>
+  <text x="195" y="751" text-anchor="middle" class="label">FastAPI API</text>
+  <rect class="node" x="720" y="708" width="230" height="72" rx="14" fill="var(--queue)"/>
+  <text x="835" y="751" text-anchor="middle" class="label">Redis queue</text>
+  <path class="call" d="M312 744 H710"/>
+  <text x="510" y="727" text-anchor="middle" class="action" fill="var(--arrow)">enqueue indexing job</text>
 
-  <path class="index" d="M780 515 V525 H245 V527"/>
-  <text x="512" y="522" text-anchor="middle" class="call" fill="var(--index)">repository files</text>
-  <path class="write" d="M382 557 H472"/>
-  <text x="427" y="540" text-anchor="middle" class="call" fill="var(--success)">scan</text>
-  <path class="write" d="M382 577 C430 598 467 586 476 574"/>
-  <text x="428" y="603" text-anchor="middle" class="call" fill="var(--success)">upsert vectors</text>
-  <path class="write" d="M638 557 H722"/>
-  <text x="680" y="540" text-anchor="middle" class="call" fill="var(--success)">record status</text>
+  <rect class="node" x="80" y="810" width="230" height="72" rx="14" fill="var(--worker)"/>
+  <text x="195" y="853" text-anchor="middle" class="label">Celery worker</text>
+  <rect class="node" x="720" y="810" width="230" height="72" rx="14" fill="var(--queue)"/>
+  <text x="835" y="853" text-anchor="middle" class="label">Redis queue</text>
+  <path class="call" d="M312 846 H710"/>
+  <text x="510" y="829" text-anchor="middle" class="action" fill="var(--arrow)">consume indexing job</text>
+
+  <rect class="node" x="80" y="912" width="230" height="72" rx="14" fill="var(--worker)"/>
+  <text x="195" y="955" text-anchor="middle" class="label">Celery worker</text>
+  <rect class="node" x="720" y="912" width="230" height="72" rx="14" fill="var(--git)"/>
+  <text x="835" y="944" text-anchor="middle" class="label">Git repository</text>
+  <text x="835" y="967" text-anchor="middle" class="detail">selected branch</text>
+  <path class="call" d="M312 948 H710"/>
+  <text x="510" y="931" text-anchor="middle" class="action" fill="var(--arrow)">clone or pull source code</text>
+
+  <rect class="node" x="80" y="1014" width="230" height="72" rx="14" fill="var(--worker)"/>
+  <text x="195" y="1057" text-anchor="middle" class="label">Celery worker</text>
+  <rect class="node" x="720" y="1014" width="230" height="72" rx="14" fill="var(--scan)"/>
+  <text x="835" y="1057" text-anchor="middle" class="label">Semgrep scan</text>
+  <path class="call" d="M312 1050 H710"/>
+  <text x="510" y="1033" text-anchor="middle" class="action" fill="var(--arrow)">scan cloned source code</text>
+
+  <rect class="node" x="80" y="1116" width="230" height="72" rx="14" fill="var(--worker)"/>
+  <text x="195" y="1159" text-anchor="middle" class="label">Celery worker</text>
+  <path class="node" d="M720 1126 Q835 1106 950 1126 L950 1178 Q835 1198 720 1178 Z" fill="var(--data)"/>
+  <text x="835" y="1159" text-anchor="middle" class="label">Qdrant vectors</text>
+  <path class="write" d="M312 1152 H710"/>
+  <text x="510" y="1135" text-anchor="middle" class="action" fill="var(--write)">upsert chunks and embeddings</text>
+
+  <rect class="node" x="80" y="1218" width="230" height="72" rx="14" fill="var(--worker)"/>
+  <text x="195" y="1261" text-anchor="middle" class="label">Celery worker</text>
+  <path class="node" d="M720 1228 Q835 1208 950 1228 L950 1280 Q835 1300 720 1280 Z" fill="var(--data)"/>
+  <text x="835" y="1261" text-anchor="middle" class="label">SQLite metadata</text>
+  <path class="write" d="M312 1254 H710"/>
+  <text x="510" y="1237" text-anchor="middle" class="action" fill="var(--write)">update repository and job status</text>
 </svg>
