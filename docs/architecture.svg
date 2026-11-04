@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 610" role="img" aria-labelledby="title desc">
+  <title id="title">CAISE system architecture</title>
+  <desc id="desc">A browser connects to the FastAPI API. The API accesses metadata, Qdrant, LLM providers, and Redis. Redis dispatches indexing work to Celery, which reads Git repositories, runs Semgrep, writes Qdrant, and updates metadata.</desc>
+  <style>
+    text { fill: var(--fg); font-family: "Comic Sans MS", "Segoe Print", "Trebuchet MS", sans-serif; }
+    .label { font-size: 16px; font-weight: 700; }
+    .detail { font-size: 12px; fill: var(--muted); }
+    .group { fill: var(--surface); stroke: var(--border); stroke-width: 2.5; stroke-dasharray: 6 5; }
+    .node { stroke: var(--fg); stroke-width: 2.5; stroke-linejoin: round; }
+    .arrow { fill: none; stroke: var(--fg); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrow); }
+    .sketch { fill: none; stroke: var(--fg); stroke-width: 1; opacity: .5; }
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--fg)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  </defs>
+
+  <rect class="group" x="34" y="38" width="205" height="510" rx="18"/>
+  <text x="58" y="72" class="label">Your browser</text>
+  <g transform="rotate(-1 137 170)">
+    <rect class="node" x="63" y="115" width="149" height="110" rx="11" fill="var(--c1)"/>
+    <path class="sketch" d="M72 124 H201 M72 214 H201"/>
+    <text x="137" y="163" text-anchor="middle" class="label">React SPA</text>
+    <text x="137" y="187" text-anchor="middle" class="detail">search · chat · sources</text>
+  </g>
+  <g transform="rotate(1 137 350)">
+    <rect class="node" x="63" y="292" width="149" height="110" rx="11" fill="var(--c4)"/>
+    <path class="sketch" d="M72 301 H201 M72 391 H201"/>
+    <text x="137" y="340" text-anchor="middle" class="label">GitHub OAuth</text>
+    <text x="137" y="364" text-anchor="middle" class="detail">optional sign-in</text>
+  </g>
+
+  <rect class="group" x="300" y="38" width="333" height="510" rx="18"/>
+  <text x="325" y="72" class="label">CAISE services</text>
+  <g transform="rotate(.8 466 170)">
+    <rect class="node" x="341" y="113" width="250" height="115" rx="11" fill="var(--c2)"/>
+    <path class="sketch" d="M351 123 H580 M351 217 H580"/>
+    <text x="466" y="159" text-anchor="middle" class="label">FastAPI API</text>
+    <text x="466" y="183" text-anchor="middle" class="detail">REST · SSE · access control</text>
+  </g>
+  <g transform="rotate(-1 402 359)">
+    <rect class="node" x="340" y="307" width="126" height="106" rx="11" fill="var(--c5)"/>
+    <text x="403" y="352" text-anchor="middle" class="label">Redis</text>
+    <text x="403" y="376" text-anchor="middle" class="detail">job queue</text>
+  </g>
+  <g transform="rotate(1 535 359)">
+    <rect class="node" x="485" y="307" width="107" height="106" rx="11" fill="var(--c3)"/>
+    <text x="538" y="352" text-anchor="middle" class="label">Celery</text>
+    <text x="538" y="376" text-anchor="middle" class="detail">indexer</text>
+  </g>
+  <text x="344" y="484" class="detail">The API stays responsive while workers index.</text>
+
+  <rect class="group" x="693" y="38" width="233" height="510" rx="18"/>
+  <text x="718" y="72" class="label">Connected systems</text>
+  <g transform="rotate(-1 810 134)">
+    <rect class="node" x="718" y="101" width="184" height="66" rx="11" fill="var(--c6)"/>
+    <text x="810" y="141" text-anchor="middle" class="label">Git repositories</text>
+  </g>
+  <g transform="rotate(.6 810 233)">
+    <rect class="node" x="718" y="199" width="184" height="67" rx="11" fill="var(--c4)"/>
+    <text x="810" y="239" text-anchor="middle" class="label">Semgrep scan</text>
+  </g>
+  <g transform="rotate(-.6 810 333)">
+    <path class="node" d="M733 300 Q810 283 887 300 L887 354 Q810 371 733 354 Z" fill="var(--c1)"/>
+    <path class="sketch" d="M733 310 Q810 327 887 310"/>
+    <text x="810" y="335" text-anchor="middle" class="label">Qdrant vectors</text>
+  </g>
+  <g transform="rotate(.7 810 435)">
+    <path class="node" d="M733 402 Q810 385 887 402 L887 456 Q810 473 733 456 Z" fill="var(--c5)"/>
+    <path class="sketch" d="M733 412 Q810 429 887 412"/>
+    <text x="810" y="437" text-anchor="middle" class="label">SQLite metadata</text>
+  </g>
+  <g transform="rotate(-.5 810 505)">
+    <rect class="node" x="718" y="476" width="184" height="56" rx="11" fill="var(--c2)"/>
+    <text x="810" y="511" text-anchor="middle" class="label">LLM provider</text>
+  </g>
+
+  <path class="arrow" d="M213 166 C255 166 291 166 336 166"/>
+  <path class="arrow" d="M213 346 C282 346 283 196 336 185"/>
+  <path class="arrow" d="M468 230 L418 300"/>
+  <path class="arrow" d="M466 359 L480 359"/>
+  <path class="arrow" d="M593 360 C654 360 658 135 712 135"/>
+  <path class="arrow" d="M593 370 C660 370 666 234 712 234"/>
+  <path class="arrow" d="M591 383 C656 383 658 329 726 329"/>
+  <path class="arrow" d="M591 394 C665 394 671 430 726 430"/>
+  <path class="arrow" d="M593 196 C659 196 663 497 712 505"/>
+  <path class="arrow" d="M593 176 C661 176 670 323 726 323"/>
+  <path class="arrow" d="M593 187 C660 187 668 422 726 422"/>
+  <text x="250" y="151" class="detail">HTTPS · SSE</text>
+  <text x="625" y="340" class="detail">index</text>
+  <text x="612" y="217" class="detail">query</text>
+</svg>
